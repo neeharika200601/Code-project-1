@@ -1,112 +1,171 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
-#define MAX 100
+#define SIZE 100
 
 typedef struct {
-    int orderId;
-    char customerName[50];
-    char foodItem[50];
+    int customerId;
+    char foodName[50];
+    char hotelName[50];
+    char streetName[50];
+    time_t orderTime;
+    time_t deliveryTime;
 } Order;
 
-Order queue[MAX];
+Order queue[SIZE];
 int front = -1, rear = -1;
 
-// Function to check if queue is full
-int isFull() {
-    return rear == MAX - 1;
+void printOrderDetails(Order order) {
+    printf("Customer ID: %d\n", order.customerId);
+    printf("Food: %s\n", order.foodName);
+    printf("Hotel: %s\n", order.hotelName);
+    printf("Street: %s\n", order.streetName);
+    printf("Order Time: %s", ctime(&order.orderTime));
+    if (order.deliveryTime != 0) {
+        printf("Delivery Time: %s", ctime(&order.deliveryTime));
+    } else {
+        printf("Delivery Time: Not yet delivered\n");
+    }
+    printf("------------------------------\n");
 }
 
-// Function to check if queue is empty
-int isEmpty() {
-    return front == -1 || front > rear;
-}
-
-// Add an order to the queue
-void enqueue() {
-    if (isFull()) {
-        printf("Queue is full! Cannot accept more orders.\n");
+void placeOrder(Order order) {
+    if (rear == SIZE - 1) {
+        printf("Queue is full. Cannot place more orders.\n");
         return;
     }
-
-    Order newOrder;
-    printf("Enter Order ID: ");
-    scanf("%d", &newOrder.orderId);
-    getchar();  // consume newline
-
-    printf("Enter Customer Name: ");
-    fgets(newOrder.customerName, sizeof(newOrder.customerName), stdin);
-    newOrder.customerName[strcspn(newOrder.customerName, "\n")] = '\0';  // remove newline
-
-    printf("Enter Food Item: ");
-    fgets(newOrder.foodItem, sizeof(newOrder.foodItem), stdin);
-    newOrder.foodItem[strcspn(newOrder.foodItem, "\n")] = '\0';  // remove newline
-
     if (front == -1) front = 0;
     rear++;
-    queue[rear] = newOrder;
-
-    printf("Order added successfully!\n");
+    queue[rear] = order;
+    printf("\nOrder placed successfully:\n");
+    printOrderDetails(order);
 }
 
-// Serve an order from the queue
-void dequeue() {
-    if (isEmpty()) {
-        printf("Queue is empty! No orders to serve.\n");
+void processOrder() {
+    if (front == -1 || front > rear) {
+        printf("\nNo orders to process.\n");
         return;
     }
 
-    printf("Serving Order ID: %d\n", queue[front].orderId);
-    printf("Customer: %s\n", queue[front].customerName);
-    printf("Food Item: %s\n", queue[front].foodItem);
+    queue[front].deliveryTime = time(NULL); // Set delivery time when order is processed
+    printf("\nOrder Delivered:\n");
+    printOrderDetails(queue[front]);
     front++;
 }
 
-// Display all current orders
-void displayQueue() {
-    if (isEmpty()) {
-        printf("Queue is empty.\n");
+void showOrders() {
+    if (front == -1 || front > rear) {
+        printf("\nNo pending orders.\n");
         return;
     }
 
-    printf("Current Orders in Queue:\n");
+    printf("\n--- Pending Orders ---\n");
     for (int i = front; i <= rear; i++) {
-        printf("Order ID: %d | Customer: %s | Food Item: %s\n",
-               queue[i].orderId, queue[i].customerName, queue[i].foodItem);
+        printf("Order %d:\n", i - front + 1);
+        printOrderDetails(queue[i]);
     }
+}
+
+void searchOrderById(int customerId) {
+    if (front == -1 || front > rear) {
+        printf("\nNo orders to search.\n");
+        return;
+    }
+    for (int i = front; i <= rear; i++) {
+        if (queue[i].customerId == customerId) {
+            printf("\nOrder found:\n");
+            printOrderDetails(queue[i]);
+            return;
+        }
+    }
+    printf("\nOrder with Customer ID %d not found.\n", customerId);
+}
+
+void cancelOrder(int customerId) {
+    if (front == -1 || front > rear) {
+        printf("\nNo orders to cancel.\n");
+        return;
+    }
+    int i, found = 0;
+    for (i = front; i <= rear; i++) {
+        if (queue[i].customerId == customerId) {
+            found = 1;
+            break;
+        }
+    }
+    if (!found) {
+        printf("\nOrder with Customer ID %d not found.\n", customerId);
+        return;
+    }
+
+    // Shift elements to remove the canceled order
+    for (int j = i; j < rear; j++) {
+        queue[j] = queue[j + 1];
+    }
+    rear--;
+    printf("\nOrder with Customer ID %d has been canceled.\n", customerId);
 }
 
 int main() {
     int choice;
+    int orderCount = 0;
 
-    do {
-        printf("\n--- Food Delivery Queue Menu ---\n");
-        printf("1. Add Order\n");
-        printf("2. Serve Order\n");
-        printf("3. View Queue\n");
-        printf("4. Exit\n");
+    while (1) {
+        printf("\n==== Online Food Delivery Queue System ====\n");
+        printf("1. Place Order\n");
+        printf("2. Process Order\n");
+        printf("3. Show All Orders\n");
+        printf("4. Search Order by Customer ID\n");
+        printf("5. Cancel Order by Customer ID\n");
+        printf("6. Exit\n");
         printf("Enter your choice: ");
         scanf("%d", &choice);
-        getchar();  // consume newline
+        getchar(); // Clear newline
 
-        switch (choice) {
-            case 1:
-                enqueue();
-                break;
-            case 2:
-                dequeue();
-                break;
-            case 3:
-                displayQueue();
-                break;
-            case 4:
-                printf("Exiting program. Goodbye!\n");
-                break;
-            default:
-                printf("Invalid choice. Try again.\n");
+        if (choice == 1) {
+            Order newOrder;
+            newOrder.customerId = ++orderCount;
+
+            printf("Enter food name: ");
+            fgets(newOrder.foodName, sizeof(newOrder.foodName), stdin);
+            newOrder.foodName[strcspn(newOrder.foodName, "\n")] = '\0';
+
+            printf("Enter hotel name: ");
+            fgets(newOrder.hotelName, sizeof(newOrder.hotelName), stdin);
+            newOrder.hotelName[strcspn(newOrder.hotelName, "\n")] = '\0';
+
+            printf("Enter street name: ");
+            fgets(newOrder.streetName, sizeof(newOrder.streetName), stdin);
+            newOrder.streetName[strcspn(newOrder.streetName, "\n")] = '\0';
+
+            newOrder.orderTime = time(NULL); // Record order time
+            newOrder.deliveryTime = 0; // Initial delivery time as 0 (not yet delivered)
+
+            placeOrder(newOrder);
+
+        } else if (choice == 2) {
+            processOrder();
+        } else if (choice == 3) {
+            showOrders();
+        } else if (choice == 4) {
+            int customerId;
+            printf("\nEnter Customer ID to search: ");
+            scanf("%d", &customerId);
+            searchOrderById(customerId);
+        } else if (choice == 5) {
+            int customerId;
+            printf("\nEnter Customer ID to cancel: ");
+            scanf("%d", &customerId);
+            cancelOrder(customerId);
+        } else if (choice == 6) {
+            printf("\nExiting system. Thank you!\n");
+            break;
+        } else {
+            printf("\nInvalid choice. Please try again.\n");
         }
-    } while (choice != 4);
+    }
 
     return 0;
 }
